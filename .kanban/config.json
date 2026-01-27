@@ -1,0 +1,138 @@
+{
+  "$schema": "./schemas/config.schema.json",
+  "version": "1.0.0",
+  "project": {
+    "name": "blackroad-earth",
+    "organization": "BlackRoad-OS",
+    "description": "Global AI Infrastructure Network Visualization",
+    "repository": "https://github.com/BlackRoad-OS/blackroad-earth"
+  },
+  "kanban": {
+    "boards": [
+      {
+        "id": "main",
+        "name": "Main Development Board",
+        "columns": [
+          { "id": "backlog", "name": "Backlog", "wip_limit": null },
+          { "id": "todo", "name": "To Do", "wip_limit": 10 },
+          { "id": "in_progress", "name": "In Progress", "wip_limit": 5 },
+          { "id": "review", "name": "Review", "wip_limit": 3 },
+          { "id": "testing", "name": "Testing", "wip_limit": 3 },
+          { "id": "done", "name": "Done", "wip_limit": null }
+        ]
+      },
+      {
+        "id": "infrastructure",
+        "name": "Infrastructure & DevOps",
+        "columns": [
+          { "id": "planned", "name": "Planned", "wip_limit": null },
+          { "id": "configuring", "name": "Configuring", "wip_limit": 3 },
+          { "id": "deploying", "name": "Deploying", "wip_limit": 2 },
+          { "id": "monitoring", "name": "Monitoring", "wip_limit": null },
+          { "id": "stable", "name": "Stable", "wip_limit": null }
+        ]
+      },
+      {
+        "id": "integrations",
+        "name": "Service Integrations",
+        "columns": [
+          { "id": "disconnected", "name": "Disconnected", "wip_limit": null },
+          { "id": "configuring", "name": "Configuring", "wip_limit": 5 },
+          { "id": "testing", "name": "Testing", "wip_limit": 3 },
+          { "id": "connected", "name": "Connected", "wip_limit": null }
+        ]
+      }
+    ],
+    "labels": [
+      { "name": "bug", "color": "#FF1D6C", "description": "Something isn't working" },
+      { "name": "feature", "color": "#2979FF", "description": "New feature or request" },
+      { "name": "infrastructure", "color": "#F5A623", "description": "Infrastructure changes" },
+      { "name": "integration", "color": "#9C27B0", "description": "Service integration" },
+      { "name": "agent-task", "color": "#00E5FF", "description": "Task for AI agents" },
+      { "name": "pi-cluster", "color": "#76FF03", "description": "Raspberry Pi related" },
+      { "name": "mobile", "color": "#FF6E40", "description": "Mobile app related" },
+      { "name": "security", "color": "#FF5252", "description": "Security related" },
+      { "name": "documentation", "color": "#FFAB40", "description": "Documentation updates" }
+    ],
+    "priorities": [
+      { "level": 1, "name": "Critical", "color": "#FF1744" },
+      { "level": 2, "name": "High", "color": "#FF9100" },
+      { "level": 3, "name": "Medium", "color": "#FFEA00" },
+      { "level": 4, "name": "Low", "color": "#00E676" }
+    ]
+  },
+  "state_management": {
+    "provider": "hybrid",
+    "primary": "cloudflare-kv",
+    "secondary": "salesforce",
+    "backup": "github",
+    "sync_interval_seconds": 300,
+    "integrity": {
+      "algorithm": "sha-infinity",
+      "chain_depth": 7,
+      "verify_on_read": true,
+      "verify_on_write": true
+    }
+  },
+  "integrations": {
+    "cloudflare": {
+      "enabled": true,
+      "config_path": "./integrations/cloudflare.json"
+    },
+    "salesforce": {
+      "enabled": true,
+      "config_path": "./integrations/salesforce.json"
+    },
+    "vercel": {
+      "enabled": true,
+      "config_path": "./integrations/vercel.json"
+    },
+    "digitalocean": {
+      "enabled": true,
+      "config_path": "./integrations/digitalocean.json"
+    },
+    "claude": {
+      "enabled": true,
+      "config_path": "./integrations/claude.json"
+    },
+    "termius": {
+      "enabled": true,
+      "config_path": "./integrations/termius.json"
+    },
+    "mobile_apps": {
+      "enabled": true,
+      "config_path": "./integrations/mobile-apps.json"
+    },
+    "raspberry_pi": {
+      "enabled": true,
+      "config_path": "./integrations/raspberry-pi.json"
+    }
+  },
+  "agents": {
+    "instructions_path": "./agents/instructions.md",
+    "todos_path": "./agents/todos/",
+    "templates_path": "./agents/templates/",
+    "auto_assign": true,
+    "notification_channels": ["github", "slack", "email"]
+  },
+  "pr_validation": {
+    "require_linked_card": true,
+    "require_state_hash": true,
+    "require_tests": true,
+    "require_review": true,
+    "auto_update_card": true,
+    "block_on_wip_violation": true
+  },
+  "hashing": {
+    "sha256": {
+      "enabled": true,
+      "use_for": ["state", "commits", "artifacts"]
+    },
+    "sha_infinity": {
+      "enabled": true,
+      "default_depth": 7,
+      "max_depth": 256,
+      "use_for": ["critical_state", "deployments", "secrets_verification"]
+    }
+  }
+}

@@ -1,0 +1,278 @@
+{
+  "$schema": "../schemas/integration.schema.json",
+  "service": "digitalocean",
+  "version": "1.0.0",
+  "enabled": true,
+  "description": "DigitalOcean integration for droplets, kubernetes, databases, and spaces",
+
+  "authentication": {
+    "method": "bearer_token",
+    "token_env_var": "DIGITALOCEAN_TOKEN",
+    "spaces_access_key_env_var": "DIGITALOCEAN_SPACES_ACCESS_KEY",
+    "spaces_secret_key_env_var": "DIGITALOCEAN_SPACES_SECRET_KEY"
+  },
+
+  "droplets": {
+    "enabled": true,
+    "instances": [
+      {
+        "name": "blackroad-kanban-master",
+        "region": "nyc3",
+        "size": "s-2vcpu-4gb",
+        "image": "ubuntu-22-04-x64",
+        "tags": ["kanban", "production", "master"],
+        "vpc_uuid_env_var": "DO_VPC_UUID",
+        "ssh_keys_env_var": "DO_SSH_KEY_IDS",
+        "user_data": "#!/bin/bash\napt-get update\napt-get install -y docker.io docker-compose\nsystemctl enable docker",
+        "monitoring": true,
+        "backups": true
+      },
+      {
+        "name": "blackroad-agent-worker-1",
+        "region": "nyc3",
+        "size": "s-1vcpu-2gb",
+        "image": "ubuntu-22-04-x64",
+        "tags": ["kanban", "production", "worker", "agent"],
+        "monitoring": true,
+        "backups": false
+      },
+      {
+        "name": "blackroad-agent-worker-2",
+        "region": "sfo3",
+        "size": "s-1vcpu-2gb",
+        "image": "ubuntu-22-04-x64",
+        "tags": ["kanban", "production", "worker", "agent"],
+        "monitoring": true,
+        "backups": false
+      }
+    ]
+  },
+
+  "kubernetes": {
+    "enabled": true,
+    "clusters": [
+      {
+        "name": "blackroad-k8s",
+        "region": "nyc3",
+        "version": "1.29",
+        "node_pools": [
+          {
+            "name": "kanban-pool",
+            "size": "s-2vcpu-4gb",
+            "count": 3,
+            "auto_scale": true,
+            "min_nodes": 2,
+            "max_nodes": 10,
+            "tags": ["kanban", "production"]
+          },
+          {
+            "name": "agent-pool",
+            "size": "s-4vcpu-8gb",
+            "count": 2,
+            "auto_scale": true,
+            "min_nodes": 1,
+            "max_nodes": 5,
+            "tags": ["agent", "compute"]
+          }
+        ],
+        "maintenance_window": {
+          "day": "sunday",
+          "start_time": "04:00"
+        }
+      }
+    ]
+  },
+
+  "databases": {
+    "enabled": true,
+    "clusters": [
+      {
+        "name": "blackroad-postgres",
+        "engine": "pg",
+        "version": "16",
+        "size": "db-s-1vcpu-2gb",
+        "region": "nyc3",
+        "num_nodes": 2,
+        "tags": ["kanban", "production"],
+        "databases": ["kanban_production", "kanban_staging"],
+        "users": [
+          { "name": "kanban_app", "role": "normal" },
+          { "name": "kanban_readonly", "role": "normal" }
+        ],
+        "maintenance_window": {
+          "day": "sunday",
+          "hour": "02:00"
+        }
+      },
+      {
+        "name": "blackroad-redis",
+        "engine": "redis",
+        "version": "7",
+        "size": "db-s-1vcpu-1gb",
+        "region": "nyc3",
+        "num_nodes": 1,
+        "tags": ["kanban", "cache"]
+      }
+    ]
+  },
+
+  "spaces": {
+    "enabled": true,
+    "buckets": [
+      {
+        "name": "blackroad-artifacts",
+        "region": "nyc3",
+        "acl": "private",
+        "cors": {
+          "allowed_origins": ["https://blackroad.io", "https://*.blackroad.io"],
+          "allowed_methods": ["GET", "PUT", "POST", "DELETE"],
+          "allowed_headers": ["*"],
+          "max_age_seconds": 3600
+        },
+        "lifecycle_rules": [
+          {
+            "prefix": "temp/",
+            "expiration_days": 7
+          },
+          {
+            "prefix": "backups/",
+            "expiration_days": 90
+          }
+        ]
+      },
+      {
+        "name": "blackroad-state-backups",
+        "region": "nyc3",
+        "acl": "private",
+        "versioning": true
+      }
+    ],
+    "cdn": {
+      "enabled": true,
+      "ttl_seconds": 3600
+    }
+  },
+
+  "app_platform": {
+    "enabled": true,
+    "apps": [
+      {
+        "name": "blackroad-kanban-api",
+        "region": "nyc",
+        "spec": {
+          "services": [
+            {
+              "name": "api",
+              "github": {
+                "repo": "BlackRoad-OS/blackroad-kanban-api",
+                "branch": "main",
+                "deploy_on_push": true
+              },
+              "instance_size_slug": "basic-xs",
+              "instance_count": 2,
+              "http_port": 3000,
+              "routes": [{ "path": "/" }],
+              "health_check": {
+                "http_path": "/health",
+                "initial_delay_seconds": 10
+              }
+            }
+          ],
+          "workers": [
+            {
+              "name": "sync-worker",
+              "github": {
+                "repo": "BlackRoad-OS/blackroad-sync-worker",
+                "branch": "main"
+              },
+              "instance_size_slug": "basic-xs",
+              "instance_count": 1
+            }
+          ]
+        }
+      }
+    ]
+  },
+
+  "functions": {
+    "enabled": true,
+    "namespaces": [
+      {
+        "name": "blackroad-functions",
+        "region": "nyc",
+        "functions": [
+          { "name": "state-sync", "runtime": "nodejs:20", "timeout": 60000 },
+          { "name": "webhook-handler", "runtime": "nodejs:20", "timeout": 30000 },
+          { "name": "hash-compute", "runtime": "nodejs:20", "timeout": 10000 }
+        ]
+      }
+    ]
+  },
+
+  "load_balancers": {
+    "enabled": true,
+    "balancers": [
+      {
+        "name": "blackroad-lb",
+        "region": "nyc3",
+        "algorithm": "round_robin",
+        "health_check": {
+          "protocol": "http",
+          "port": 80,
+          "path": "/health",
+          "check_interval_seconds": 10,
+          "response_timeout_seconds": 5,
+          "unhealthy_threshold": 3,
+          "healthy_threshold": 5
+        },
+        "forwarding_rules": [
+          { "entry_protocol": "https", "entry_port": 443, "target_protocol": "http", "target_port": 80 }
+        ],
+        "sticky_sessions": {
+          "type": "cookies",
+          "cookie_name": "DO_LB",
+          "cookie_ttl_seconds": 300
+        }
+      }
+    ]
+  },
+
+  "firewalls": {
+    "enabled": true,
+    "rules": [
+      {
+        "name": "blackroad-firewall",
+        "inbound_rules": [
+          { "protocol": "tcp", "ports": "22", "sources": { "addresses": ["0.0.0.0/0"] } },
+          { "protocol": "tcp", "ports": "80", "sources": { "addresses": ["0.0.0.0/0"] } },
+          { "protocol": "tcp", "ports": "443", "sources": { "addresses": ["0.0.0.0/0"] } }
+        ],
+        "outbound_rules": [
+          { "protocol": "tcp", "ports": "all", "destinations": { "addresses": ["0.0.0.0/0"] } },
+          { "protocol": "udp", "ports": "all", "destinations": { "addresses": ["0.0.0.0/0"] } }
+        ],
+        "droplet_ids_tag": "kanban"
+      }
+    ]
+  },
+
+  "endpoints": {
+    "api_base": "https://api.digitalocean.com/v2",
+    "droplets": "https://api.digitalocean.com/v2/droplets",
+    "kubernetes": "https://api.digitalocean.com/v2/kubernetes/clusters",
+    "databases": "https://api.digitalocean.com/v2/databases",
+    "spaces": "https://{region}.digitaloceanspaces.com"
+  },
+
+  "monitoring": {
+    "alerts": [
+      { "type": "droplet_cpu_utilization", "threshold": 80, "window": "5m" },
+      { "type": "droplet_memory_utilization", "threshold": 85, "window": "5m" },
+      { "type": "droplet_disk_utilization", "threshold": 90, "window": "5m" }
+    ],
+    "notifications": {
+      "email": ["blackroad.systems@gmail.com"],
+      "slack_webhook_env_var": "DO_SLACK_WEBHOOK"
+    }
+  }
+}

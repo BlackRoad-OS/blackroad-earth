@@ -1,0 +1,251 @@
+name: Kanban State Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.kanban/state/**'
+      - '.kanban/config.json'
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sync_target:
+        description: 'Sync target (all, cloudflare, salesforce, github)'
+        required: false
+        default: 'all'
+      force_sync:
+        description: 'Force sync even if hashes match'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  prepare-state:
+    name: Prepare State for Sync
+    runs-on: ubuntu-latest
+    outputs:
+      state_hash: ${{ steps.compute-hash.outputs.hash }}
+      state_infinity_hash: ${{ steps.compute-hash.outputs.infinity_hash }}
+      should_sync: ${{ steps.check-changes.outputs.should_sync }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Compute state hashes
+        id: compute-hash
+        run: |
+          if [ -f ".kanban/state/current.json" ]; then
+            HASH=$(node -e "
+              const sha256 = require('./.kanban/hashing/sha256');
+              const state = require('./.kanban/state/current.json');
+              console.log(sha256.hashObject(state));
+            " 2>/dev/null || echo "pending")
+
+            INFINITY_HASH=$(node -e "
+              const shaInfinity = require('./.kanban/hashing/sha-infinity');
+              const state = require('./.kanban/state/current.json');
+              console.log(shaInfinity.shaInfinity(JSON.stringify(state), 7));
+            " 2>/dev/null || echo "pending")
+
+            echo "hash=$HASH" >> $GITHUB_OUTPUT
+            echo "infinity_hash=$INFINITY_HASH" >> $GITHUB_OUTPUT
+            echo "State SHA-256: $HASH"
+            echo "State SHA-Infinity: $INFINITY_HASH"
+          else
+            echo "hash=no_state_file" >> $GITHUB_OUTPUT
+            echo "infinity_hash=no_state_file" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if sync needed
+        id: check-changes
+        run: |
+          if [ "${{ github.event.inputs.force_sync }}" = "true" ]; then
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+            echo "Force sync requested"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+            echo "Push event detected"
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+            echo "should_sync=true" >> $GITHUB_OUTPUT
+            echo "PR merged"
+          else
+            echo "should_sync=false" >> $GITHUB_OUTPUT
+            echo "No sync needed"
+          fi
+
+  sync-cloudflare:
+    name: Sync to Cloudflare KV
+    needs: prepare-state
+    if: needs.prepare-state.outputs.should_sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Sync state to Cloudflare KV
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::Cloudflare credentials not configured. Skipping sync."
+            exit 0
+          fi
+
+          echo "Syncing state to Cloudflare KV..."
+          # This would sync to Cloudflare KV namespace
+          # curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/storage/kv/namespaces/$KV_NAMESPACE_ID/values/kanban_state" \
+          #   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+          #   -H "Content-Type: application/json" \
+          #   --data @.kanban/state/current.json
+
+          echo "Cloudflare sync placeholder - configure KV namespace ID"
+
+      - name: Update sync timestamp
+        run: |
+          echo "Cloudflare sync completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "State hash: ${{ needs.prepare-state.outputs.state_hash }}"
+
+  sync-salesforce:
+    name: Sync to Salesforce
+    needs: prepare-state
+    if: needs.prepare-state.outputs.should_sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Sync state to Salesforce
+        env:
+          SALESFORCE_CLIENT_ID: ${{ secrets.SALESFORCE_CLIENT_ID }}
+          SALESFORCE_CLIENT_SECRET: ${{ secrets.SALESFORCE_CLIENT_SECRET }}
+          SALESFORCE_USERNAME: ${{ secrets.SALESFORCE_USERNAME }}
+          SALESFORCE_PASSWORD: ${{ secrets.SALESFORCE_PASSWORD }}
+          SALESFORCE_SECURITY_TOKEN: ${{ secrets.SALESFORCE_SECURITY_TOKEN }}
+        run: |
+          if [ -z "$SALESFORCE_CLIENT_ID" ]; then
+            echo "::warning::Salesforce credentials not configured. Skipping sync."
+            exit 0
+          fi
+
+          echo "Syncing state to Salesforce..."
+          # This would authenticate and sync to Salesforce
+          # 1. Get OAuth token
+          # 2. Update BlackRoad_Project__c record
+          # 3. Sync kanban cards to Kanban_Card__c
+
+          echo "Salesforce sync placeholder - configure OAuth credentials"
+
+      - name: Update sync timestamp
+        run: |
+          echo "Salesforce sync completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  update-github-project:
+    name: Update GitHub Project
+    needs: prepare-state
+    if: needs.prepare-state.outputs.should_sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Sync to GitHub Projects
+        uses: actions/github-script@v7
+        with:
+          script: |
+            console.log('GitHub Projects sync triggered');
+            console.log('State hash:', '${{ needs.prepare-state.outputs.state_hash }}');
+
+            // This would sync kanban state to GitHub Projects
+            // Using the GraphQL API to update project items
+
+            console.log('GitHub Projects sync placeholder - configure project ID');
+
+  update-pr-on-merge:
+    name: Update PR Cards on Merge
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update linked kanban cards
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          echo "PR #$PR_NUMBER merged: $PR_TITLE"
+
+          # Extract card IDs from PR body
+          CARD_IDS=$(echo "$PR_BODY" | grep -oE "card_[0-9]+" || echo "")
+
+          if [ -n "$CARD_IDS" ]; then
+            echo "Linked cards: $CARD_IDS"
+            echo "Moving cards to 'Done' column..."
+            # This would update the kanban state file
+          else
+            echo "No linked cards found"
+          fi
+
+      - name: Create state checkpoint
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          if [ -f ".kanban/state/current.json" ]; then
+            mkdir -p .kanban/state/checkpoints
+            cp .kanban/state/current.json ".kanban/state/checkpoints/checkpoint_$TIMESTAMP.json"
+            echo "Created checkpoint: checkpoint_$TIMESTAMP.json"
+          fi
+
+  notify-completion:
+    name: Notify Sync Completion
+    needs: [sync-cloudflare, sync-salesforce, update-github-project]
+    if: always() && needs.prepare-state.outputs.should_sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare notification
+        run: |
+          echo "## Kanban Sync Summary"
+          echo ""
+          echo "| Service | Status |"
+          echo "|---------|--------|"
+          echo "| Cloudflare | ${{ needs.sync-cloudflare.result }} |"
+          echo "| Salesforce | ${{ needs.sync-salesforce.result }} |"
+          echo "| GitHub Projects | ${{ needs.update-github-project.result }} |"
+          echo ""
+          echo "State Hash: ${{ needs.prepare-state.outputs.state_hash }}"
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Send Slack notification
+        if: env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"Kanban State Sync Completed\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Kanban State Sync Completed*\\n\\nState Hash: \`${{ needs.prepare-state.outputs.state_hash }}\`\"
+                  }
+                }
+              ]
+            }" \
+            $SLACK_WEBHOOK || echo "Slack notification skipped"

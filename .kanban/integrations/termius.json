@@ -1,0 +1,219 @@
+{
+  "$schema": "../schemas/integration.schema.json",
+  "service": "termius",
+  "version": "1.0.0",
+  "enabled": true,
+  "description": "Termius SSH client integration for remote server management and Pi cluster access",
+
+  "authentication": {
+    "method": "api_key",
+    "api_key_env_var": "TERMIUS_API_KEY",
+    "team_id_env_var": "TERMIUS_TEAM_ID"
+  },
+
+  "hosts": {
+    "groups": [
+      {
+        "name": "BlackRoad Pi Cluster",
+        "description": "Raspberry Pi cluster nodes",
+        "hosts": [
+          {
+            "label": "pi-master",
+            "address_env_var": "PI_MASTER_HOST",
+            "port": 22,
+            "username": "blackroad",
+            "auth_method": "key",
+            "key_env_var": "PI_SSH_KEY",
+            "tags": ["master", "kubernetes", "control-plane"]
+          },
+          {
+            "label": "pi-worker-1",
+            "address_env_var": "PI_WORKER_1_HOST",
+            "port": 22,
+            "username": "blackroad",
+            "auth_method": "key",
+            "key_env_var": "PI_SSH_KEY",
+            "tags": ["worker", "kubernetes"]
+          },
+          {
+            "label": "pi-worker-2",
+            "address_env_var": "PI_WORKER_2_HOST",
+            "port": 22,
+            "username": "blackroad",
+            "auth_method": "key",
+            "key_env_var": "PI_SSH_KEY",
+            "tags": ["worker", "kubernetes"]
+          },
+          {
+            "label": "pi-storage",
+            "address_env_var": "PI_STORAGE_HOST",
+            "port": 22,
+            "username": "blackroad",
+            "auth_method": "key",
+            "key_env_var": "PI_SSH_KEY",
+            "tags": ["storage", "nfs", "backup"]
+          }
+        ]
+      },
+      {
+        "name": "DigitalOcean Droplets",
+        "description": "Cloud compute instances",
+        "hosts": [
+          {
+            "label": "do-kanban-master",
+            "address_env_var": "DO_KANBAN_MASTER_HOST",
+            "port": 22,
+            "username": "root",
+            "auth_method": "key",
+            "key_env_var": "DO_SSH_KEY",
+            "tags": ["production", "master"]
+          },
+          {
+            "label": "do-worker-1",
+            "address_env_var": "DO_WORKER_1_HOST",
+            "port": 22,
+            "username": "root",
+            "auth_method": "key",
+            "key_env_var": "DO_SSH_KEY",
+            "tags": ["production", "worker"]
+          }
+        ]
+      },
+      {
+        "name": "Development Machines",
+        "description": "Local development environments",
+        "hosts": [
+          {
+            "label": "dev-mac",
+            "address": "localhost",
+            "port": 22,
+            "username": "developer",
+            "auth_method": "key",
+            "tags": ["development", "local"]
+          }
+        ]
+      }
+    ]
+  },
+
+  "snippets": {
+    "kanban_operations": [
+      {
+        "name": "sync-kanban-state",
+        "description": "Sync kanban state from Git to local",
+        "command": "cd /opt/blackroad && git pull origin main && ./scripts/sync-state.sh"
+      },
+      {
+        "name": "check-services",
+        "description": "Check status of all BlackRoad services",
+        "command": "systemctl status blackroad-* --no-pager"
+      },
+      {
+        "name": "view-logs",
+        "description": "View recent kanban service logs",
+        "command": "journalctl -u blackroad-kanban -n 100 --no-pager"
+      },
+      {
+        "name": "restart-services",
+        "description": "Restart all BlackRoad services",
+        "command": "sudo systemctl restart blackroad-kanban blackroad-sync blackroad-agent"
+      }
+    ],
+    "pi_cluster": [
+      {
+        "name": "cluster-status",
+        "description": "Check Kubernetes cluster status",
+        "command": "kubectl get nodes -o wide && kubectl get pods -A"
+      },
+      {
+        "name": "deploy-update",
+        "description": "Deploy latest changes to cluster",
+        "command": "kubectl apply -f /opt/blackroad/k8s/ --recursive"
+      },
+      {
+        "name": "rollback",
+        "description": "Rollback to previous deployment",
+        "command": "kubectl rollout undo deployment/blackroad-kanban -n blackroad"
+      }
+    ],
+    "maintenance": [
+      {
+        "name": "system-update",
+        "description": "Update system packages",
+        "command": "sudo apt update && sudo apt upgrade -y"
+      },
+      {
+        "name": "docker-cleanup",
+        "description": "Clean up Docker resources",
+        "command": "docker system prune -af && docker volume prune -f"
+      },
+      {
+        "name": "check-disk",
+        "description": "Check disk usage",
+        "command": "df -h && du -sh /opt/blackroad/*"
+      }
+    ]
+  },
+
+  "port_forwarding": {
+    "tunnels": [
+      {
+        "name": "kanban-api-local",
+        "description": "Forward kanban API to local",
+        "host": "pi-master",
+        "local_port": 3000,
+        "remote_host": "localhost",
+        "remote_port": 3000
+      },
+      {
+        "name": "postgres-local",
+        "description": "Forward PostgreSQL to local",
+        "host": "do-kanban-master",
+        "local_port": 5432,
+        "remote_host": "localhost",
+        "remote_port": 5432
+      },
+      {
+        "name": "redis-local",
+        "description": "Forward Redis to local",
+        "host": "do-kanban-master",
+        "local_port": 6379,
+        "remote_host": "localhost",
+        "remote_port": 6379
+      }
+    ]
+  },
+
+  "sftp": {
+    "enabled": true,
+    "default_paths": {
+      "pi-master": "/opt/blackroad",
+      "do-kanban-master": "/opt/blackroad",
+      "pi-storage": "/mnt/storage/blackroad"
+    }
+  },
+
+  "sync": {
+    "enabled": true,
+    "sync_hosts": true,
+    "sync_snippets": true,
+    "sync_keys": false,
+    "team_sharing": true
+  },
+
+  "api": {
+    "endpoints": {
+      "base": "https://api.termius.com",
+      "hosts": "https://api.termius.com/api/v3/hosts",
+      "groups": "https://api.termius.com/api/v3/groups",
+      "snippets": "https://api.termius.com/api/v3/snippets"
+    }
+  },
+
+  "mobile_integration": {
+    "enabled": true,
+    "platforms": ["ios", "android"],
+    "quick_connect": true,
+    "biometric_auth": true
+  }
+}

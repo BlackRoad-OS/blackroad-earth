@@ -1,0 +1,159 @@
+{
+  "agent": "all",
+  "version": "1.0.0",
+  "last_updated": "2026-01-27T00:00:00Z",
+  "todos": [
+    {
+      "id": "todo_001",
+      "title": "Complete kanban integration setup",
+      "description": "Finalize all kanban integrations and verify connectivity to all services",
+      "priority": "critical",
+      "status": "in_progress",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": [],
+      "linked_cards": ["card_001"],
+      "assigned_to": "claude-agent",
+      "notes": [
+        {
+          "timestamp": "2026-01-27T00:00:00Z",
+          "message": "Started setup of kanban project structure"
+        }
+      ]
+    },
+    {
+      "id": "todo_002",
+      "title": "Configure GitHub secrets for all integrations",
+      "description": "Add all required API tokens and credentials to GitHub repository secrets",
+      "priority": "high",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": ["todo_001"],
+      "linked_cards": ["card_001"],
+      "assigned_to": "human",
+      "notes": [],
+      "secrets_required": [
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID",
+        "SALESFORCE_CLIENT_ID",
+        "SALESFORCE_CLIENT_SECRET",
+        "VERCEL_TOKEN",
+        "DIGITALOCEAN_TOKEN",
+        "ANTHROPIC_API_KEY",
+        "TERMIUS_API_KEY"
+      ]
+    },
+    {
+      "id": "todo_003",
+      "title": "Verify Pi cluster connectivity",
+      "description": "Ensure all Raspberry Pi nodes are accessible and running required services",
+      "priority": "high",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": [],
+      "linked_cards": ["infra_001"],
+      "assigned_to": "integration-monitor",
+      "notes": []
+    },
+    {
+      "id": "todo_004",
+      "title": "Test Salesforce webhook integration",
+      "description": "Create test records in Salesforce and verify webhooks trigger correctly",
+      "priority": "medium",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": ["todo_002"],
+      "linked_cards": ["int_002"],
+      "assigned_to": "integration-monitor",
+      "notes": []
+    },
+    {
+      "id": "todo_005",
+      "title": "Deploy Cloudflare Workers",
+      "description": "Deploy kanban-state-worker and webhook-handler to Cloudflare",
+      "priority": "high",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": ["todo_002"],
+      "linked_cards": ["int_001"],
+      "assigned_to": "deployment-coordinator",
+      "notes": []
+    },
+    {
+      "id": "todo_006",
+      "title": "Create Vercel serverless functions",
+      "description": "Implement and deploy kanban-sync, webhook-receiver, and hash-verify functions",
+      "priority": "medium",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": ["todo_002"],
+      "linked_cards": ["int_003"],
+      "assigned_to": "deployment-coordinator",
+      "notes": []
+    },
+    {
+      "id": "todo_007",
+      "title": "Set up DigitalOcean infrastructure",
+      "description": "Create droplets, Kubernetes cluster, and managed databases as specified",
+      "priority": "medium",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": ["todo_002"],
+      "linked_cards": ["int_004"],
+      "assigned_to": "deployment-coordinator",
+      "notes": []
+    },
+    {
+      "id": "todo_008",
+      "title": "Configure mobile app integrations",
+      "description": "Set up Working Copy, Shellfish, iSH, and Pyto with correct credentials",
+      "priority": "low",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": ["todo_001"],
+      "linked_cards": ["int_008"],
+      "assigned_to": "human",
+      "notes": []
+    },
+    {
+      "id": "todo_009",
+      "title": "Run full integration test",
+      "description": "Test complete flow from card creation to PR merge to deployment",
+      "priority": "high",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": ["todo_003", "todo_004", "todo_005", "todo_006", "todo_007"],
+      "linked_cards": ["card_001"],
+      "assigned_to": "pr-validator",
+      "notes": []
+    },
+    {
+      "id": "todo_010",
+      "title": "Document all integration endpoints",
+      "description": "Ensure all endpoints are documented and health checks are in place",
+      "priority": "medium",
+      "status": "pending",
+      "created_at": "2026-01-27T00:00:00Z",
+      "due_date": null,
+      "dependencies": ["todo_009"],
+      "linked_cards": [],
+      "assigned_to": "kanban-manager",
+      "notes": []
+    }
+  ],
+  "statistics": {
+    "total": 10,
+    "pending": 9,
+    "in_progress": 1,
+    "completed": 0,
+    "blocked": 0
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "$schema": "../schemas/endpoints.schema.json",
+  "version": "1.0.0",
+  "description": "Central registry of all API endpoints and services",
+
+  "endpoints": {
+    "cloudflare": {
+      "api": "https://api.cloudflare.com/client/v4",
+      "pages": "https://api.cloudflare.com/client/v4/accounts/{account_id}/pages/projects",
+      "workers": "https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/scripts",
+      "kv": "https://api.cloudflare.com/client/v4/accounts/{account_id}/storage/kv/namespaces",
+      "r2": "https://api.cloudflare.com/client/v4/accounts/{account_id}/r2/buckets",
+      "d1": "https://api.cloudflare.com/client/v4/accounts/{account_id}/d1/database"
+    },
+
+    "salesforce": {
+      "login": "https://login.salesforce.com/services/oauth2/token",
+      "login_sandbox": "https://test.salesforce.com/services/oauth2/token",
+      "rest": "{instance_url}/services/data/{version}",
+      "sobjects": "{instance_url}/services/data/{version}/sobjects",
+      "query": "{instance_url}/services/data/{version}/query",
+      "composite": "{instance_url}/services/data/{version}/composite",
+      "tooling": "{instance_url}/services/data/{version}/tooling"
+    },
+
+    "vercel": {
+      "api": "https://api.vercel.com",
+      "deployments": "https://api.vercel.com/v13/deployments",
+      "projects": "https://api.vercel.com/v9/projects",
+      "domains": "https://api.vercel.com/v9/projects/{projectId}/domains",
+      "env": "https://api.vercel.com/v10/projects/{projectId}/env",
+      "logs": "https://api.vercel.com/v2/deployments/{deploymentId}/events",
+      "edge_config": "https://api.vercel.com/v1/edge-config"
+    },
+
+    "digitalocean": {
+      "api": "https://api.digitalocean.com/v2",
+      "droplets": "https://api.digitalocean.com/v2/droplets",
+      "kubernetes": "https://api.digitalocean.com/v2/kubernetes/clusters",
+      "databases": "https://api.digitalocean.com/v2/databases",
+      "apps": "https://api.digitalocean.com/v2/apps",
+      "functions": "https://api.digitalocean.com/v2/functions/namespaces",
+      "spaces": "https://{region}.digitaloceanspaces.com",
+      "registry": "https://api.digitalocean.com/v2/registry"
+    },
+
+    "anthropic": {
+      "api": "https://api.anthropic.com",
+      "messages": "https://api.anthropic.com/v1/messages",
+      "batch": "https://api.anthropic.com/v1/messages/batches",
+      "models": "https://api.anthropic.com/v1/models"
+    },
+
+    "github": {
+      "api": "https://api.github.com",
+      "repos": "https://api.github.com/repos/{owner}/{repo}",
+      "pulls": "https://api.github.com/repos/{owner}/{repo}/pulls",
+      "issues": "https://api.github.com/repos/{owner}/{repo}/issues",
+      "actions": "https://api.github.com/repos/{owner}/{repo}/actions",
+      "projects": "https://api.github.com/repos/{owner}/{repo}/projects",
+      "graphql": "https://api.github.com/graphql"
+    },
+
+    "termius": {
+      "api": "https://api.termius.com",
+      "hosts": "https://api.termius.com/api/v3/hosts",
+      "groups": "https://api.termius.com/api/v3/groups",
+      "snippets": "https://api.termius.com/api/v3/snippets",
+      "keys": "https://api.termius.com/api/v3/ssh_keys"
+    },
+
+    "blackroad": {
+      "main_site": "https://blackroad.io",
+      "api": "https://api.blackroad.io",
+      "earth": "https://blackroad-earth.pages.dev",
+      "kanban_api": "https://api.blackroad.io/kanban",
+      "webhooks": "https://api.blackroad.io/webhooks",
+      "health": "https://api.blackroad.io/health",
+      "pi_cluster": "https://pi.blackroad.io"
+    },
+
+    "raspberry_pi": {
+      "master": "http://pi-master.local:3000",
+      "api": "http://pi-master.local:3000/api",
+      "prometheus": "http://pi-master.local:9090",
+      "grafana": "http://pi-master.local:3001",
+      "minio": "http://pi-storage.local:9000",
+      "minio_console": "http://pi-storage.local:9001"
+    }
+  },
+
+  "webhooks": {
+    "incoming": {
+      "github_push": "https://api.blackroad.io/webhooks/github/push",
+      "github_pr": "https://api.blackroad.io/webhooks/github/pr",
+      "github_issue": "https://api.blackroad.io/webhooks/github/issue",
+      "cloudflare_deploy": "https://api.blackroad.io/webhooks/cloudflare/deploy",
+      "vercel_deploy": "https://api.blackroad.io/webhooks/vercel/deploy",
+      "salesforce_update": "https://api.blackroad.io/webhooks/salesforce/update"
+    },
+    "outgoing": {
+      "slack_notifications": "{SLACK_WEBHOOK_URL}",
+      "discord_notifications": "{DISCORD_WEBHOOK_URL}",
+      "email_alerts": "https://api.blackroad.io/notifications/email"
+    }
+  },
+
+  "health_checks": {
+    "endpoints": [
+      { "name": "blackroad-earth", "url": "https://blackroad-earth.pages.dev/health.json", "interval": 60 },
+      { "name": "blackroad-api", "url": "https://api.blackroad.io/health", "interval": 30 },
+      { "name": "pi-cluster", "url": "http://pi-master.local:3000/health", "interval": 30 },
+      { "name": "cloudflare-workers", "url": "https://api.blackroad.io/kanban/health", "interval": 60 }
+    ],
+    "expected_responses": {
+      "status_code": 200,
+      "max_latency_ms": 5000,
+      "required_fields": ["status", "timestamp"]
+    }
+  },
+
+  "rate_limits": {
+    "cloudflare": { "requests_per_second": 50 },
+    "salesforce": { "requests_per_day": 100000 },
+    "vercel": { "requests_per_second": 10 },
+    "digitalocean": { "requests_per_hour": 5000 },
+    "anthropic": { "requests_per_minute": 60, "tokens_per_minute": 100000 },
+    "github": { "requests_per_hour": 5000 },
+    "termius": { "requests_per_minute": 60 }
+  },
+
+  "authentication": {
+    "cloudflare": { "type": "bearer", "header": "Authorization", "prefix": "Bearer " },
+    "salesforce": { "type": "oauth2", "header": "Authorization", "prefix": "Bearer " },
+    "vercel": { "type": "bearer", "header": "Authorization", "prefix": "Bearer " },
+    "digitalocean": { "type": "bearer", "header": "Authorization", "prefix": "Bearer " },
+    "anthropic": { "type": "api_key", "header": "x-api-key", "prefix": "" },
+    "github": { "type": "bearer", "header": "Authorization", "prefix": "Bearer " },
+    "termius": { "type": "api_key", "header": "X-API-Key", "prefix": "" }
+  },
+
+  "retry_config": {
+    "max_retries": 3,
+    "backoff_multiplier": 2,
+    "initial_delay_ms": 1000,
+    "max_delay_ms": 30000,
+    "retryable_status_codes": [408, 429, 500, 502, 503, 504]
+  },
+
+  "timeouts": {
+    "connect_ms": 5000,
+    "read_ms": 30000,
+    "write_ms": 30000
+  }
+}

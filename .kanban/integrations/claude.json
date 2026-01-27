@@ -1,0 +1,214 @@
+{
+  "$schema": "../schemas/integration.schema.json",
+  "service": "claude",
+  "version": "1.0.0",
+  "enabled": true,
+  "description": "Claude AI integration for intelligent agent assistance, code review, and task automation",
+
+  "authentication": {
+    "method": "api_key",
+    "api_key_env_var": "ANTHROPIC_API_KEY",
+    "organization_id_env_var": "ANTHROPIC_ORG_ID"
+  },
+
+  "models": {
+    "default": "claude-opus-4-5-20251101",
+    "available": [
+      {
+        "id": "claude-opus-4-5-20251101",
+        "name": "Claude Opus 4.5",
+        "use_cases": ["complex_reasoning", "code_generation", "architecture_design"],
+        "max_tokens": 200000,
+        "cost_tier": "premium"
+      },
+      {
+        "id": "claude-sonnet-4-20250514",
+        "name": "Claude Sonnet 4",
+        "use_cases": ["code_review", "task_planning", "documentation"],
+        "max_tokens": 200000,
+        "cost_tier": "standard"
+      },
+      {
+        "id": "claude-3-5-haiku-20241022",
+        "name": "Claude 3.5 Haiku",
+        "use_cases": ["quick_tasks", "validation", "formatting"],
+        "max_tokens": 200000,
+        "cost_tier": "economy"
+      }
+    ],
+    "task_routing": {
+      "pr_review": "claude-sonnet-4-20250514",
+      "code_generation": "claude-opus-4-5-20251101",
+      "bug_fix": "claude-sonnet-4-20250514",
+      "documentation": "claude-sonnet-4-20250514",
+      "quick_validation": "claude-3-5-haiku-20241022",
+      "architecture_planning": "claude-opus-4-5-20251101",
+      "security_audit": "claude-opus-4-5-20251101"
+    }
+  },
+
+  "agents": {
+    "enabled": true,
+    "agent_types": [
+      {
+        "name": "kanban-manager",
+        "description": "Manages kanban board state and card movements",
+        "model": "claude-sonnet-4-20250514",
+        "capabilities": ["card_creation", "status_updates", "priority_management", "assignment"],
+        "tools": ["github", "salesforce", "cloudflare_kv"]
+      },
+      {
+        "name": "code-reviewer",
+        "description": "Reviews pull requests and provides feedback",
+        "model": "claude-opus-4-5-20251101",
+        "capabilities": ["code_review", "security_check", "performance_analysis", "style_check"],
+        "tools": ["github", "codeql"]
+      },
+      {
+        "name": "pr-validator",
+        "description": "Validates PRs against kanban requirements",
+        "model": "claude-sonnet-4-20250514",
+        "capabilities": ["card_linking", "hash_verification", "checklist_validation"],
+        "tools": ["github", "kanban_state"]
+      },
+      {
+        "name": "integration-monitor",
+        "description": "Monitors health of all integrations",
+        "model": "claude-3-5-haiku-20241022",
+        "capabilities": ["health_check", "error_detection", "alert_generation"],
+        "tools": ["all_integrations"]
+      },
+      {
+        "name": "deployment-coordinator",
+        "description": "Coordinates deployments across platforms",
+        "model": "claude-sonnet-4-20250514",
+        "capabilities": ["deployment_planning", "rollback_management", "state_sync"],
+        "tools": ["cloudflare", "vercel", "digitalocean", "github"]
+      }
+    ]
+  },
+
+  "tools": {
+    "enabled": true,
+    "available_tools": [
+      {
+        "name": "kanban_read",
+        "description": "Read current kanban board state",
+        "parameters": {
+          "board_id": "string",
+          "include_history": "boolean"
+        }
+      },
+      {
+        "name": "kanban_write",
+        "description": "Update kanban card or board state",
+        "parameters": {
+          "action": "string",
+          "card_id": "string",
+          "updates": "object"
+        }
+      },
+      {
+        "name": "github_pr",
+        "description": "Interact with GitHub pull requests",
+        "parameters": {
+          "action": "string",
+          "pr_number": "number",
+          "comment": "string"
+        }
+      },
+      {
+        "name": "hash_verify",
+        "description": "Verify SHA-256 or SHA-infinity hash",
+        "parameters": {
+          "data": "string",
+          "expected_hash": "string",
+          "algorithm": "string",
+          "depth": "number"
+        }
+      },
+      {
+        "name": "integration_call",
+        "description": "Call external integration API",
+        "parameters": {
+          "service": "string",
+          "endpoint": "string",
+          "method": "string",
+          "payload": "object"
+        }
+      }
+    ]
+  },
+
+  "computer_use": {
+    "enabled": true,
+    "allowed_actions": [
+      "code_editing",
+      "terminal_commands",
+      "file_operations",
+      "git_operations",
+      "browser_research"
+    ],
+    "restrictions": {
+      "no_destructive_without_approval": true,
+      "require_hash_verification": true,
+      "log_all_actions": true
+    }
+  },
+
+  "mcp_servers": {
+    "enabled": true,
+    "servers": [
+      {
+        "name": "github",
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"]
+      },
+      {
+        "name": "filesystem",
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/blackroad-earth"]
+      },
+      {
+        "name": "postgres",
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres"]
+      }
+    ]
+  },
+
+  "endpoints": {
+    "api_base": "https://api.anthropic.com",
+    "messages": "https://api.anthropic.com/v1/messages",
+    "batch": "https://api.anthropic.com/v1/messages/batches"
+  },
+
+  "rate_limits": {
+    "requests_per_minute": 60,
+    "tokens_per_minute": 100000,
+    "concurrent_requests": 5
+  },
+
+  "caching": {
+    "enabled": true,
+    "prompt_caching": true,
+    "cache_ttl_seconds": 300
+  },
+
+  "logging": {
+    "enabled": true,
+    "log_prompts": false,
+    "log_responses": false,
+    "log_token_usage": true,
+    "log_errors": true
+  },
+
+  "hooks": {
+    "pre_request": ["validate_permissions", "check_rate_limit"],
+    "post_response": ["log_usage", "update_metrics"],
+    "on_error": ["retry_with_backoff", "alert_on_failure"]
+  }
+}

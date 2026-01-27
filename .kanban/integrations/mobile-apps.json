@@ -1,0 +1,265 @@
+{
+  "$schema": "../schemas/integration.schema.json",
+  "service": "mobile_apps",
+  "version": "1.0.0",
+  "enabled": true,
+  "description": "Mobile app integrations for iOS development and remote access (iSH, Shellfish, Working Copy, Pyto)",
+
+  "apps": {
+    "ish": {
+      "name": "iSH Shell",
+      "platform": "ios",
+      "description": "Linux shell environment on iOS using Alpine Linux",
+      "enabled": true,
+      "configuration": {
+        "default_shell": "/bin/ash",
+        "packages": [
+          "git",
+          "openssh",
+          "curl",
+          "wget",
+          "python3",
+          "py3-pip",
+          "nodejs",
+          "npm",
+          "vim",
+          "tmux"
+        ],
+        "mount_points": [
+          {
+            "name": "blackroad-repos",
+            "path": "/mnt/repos",
+            "description": "Mounted repos from Files app"
+          }
+        ],
+        "startup_script": "#!/bin/ash\nexport PATH=$PATH:/usr/local/bin\ncd /mnt/repos/blackroad-earth\necho 'BlackRoad Environment Ready'",
+        "aliases": {
+          "gs": "git status",
+          "gp": "git pull",
+          "kb": "cat .kanban/state/current.json | python3 -m json.tool",
+          "sync": "./scripts/mobile-sync.sh"
+        }
+      },
+      "scripts": {
+        "setup": "apk update && apk add git openssh curl python3 py3-pip nodejs npm",
+        "clone_repo": "git clone https://github.com/BlackRoad-OS/blackroad-earth.git /mnt/repos/blackroad-earth",
+        "sync_state": "cd /mnt/repos/blackroad-earth && git pull && python3 scripts/sync-state.py"
+      }
+    },
+
+    "shellfish": {
+      "name": "Shellfish SFTP",
+      "platform": "ios",
+      "description": "SFTP/SSH client with Files app integration",
+      "enabled": true,
+      "configuration": {
+        "connections": [
+          {
+            "name": "Pi Master",
+            "host_env_var": "PI_MASTER_HOST",
+            "port": 22,
+            "username": "blackroad",
+            "auth": "key",
+            "key_env_var": "SHELLFISH_PI_KEY",
+            "default_path": "/opt/blackroad",
+            "files_integration": true
+          },
+          {
+            "name": "DO Kanban",
+            "host_env_var": "DO_KANBAN_MASTER_HOST",
+            "port": 22,
+            "username": "root",
+            "auth": "key",
+            "key_env_var": "SHELLFISH_DO_KEY",
+            "default_path": "/opt/blackroad",
+            "files_integration": true
+          }
+        ],
+        "settings": {
+          "auto_connect": true,
+          "keep_alive": true,
+          "terminal_type": "xterm-256color",
+          "font": "SF Mono",
+          "font_size": 14
+        }
+      },
+      "workflows": {
+        "quick_sync": [
+          "connect to Pi Master",
+          "cd /opt/blackroad",
+          "git pull origin main",
+          "systemctl restart blackroad-kanban"
+        ],
+        "backup_state": [
+          "connect to Pi Master",
+          "cd /opt/blackroad/.kanban/state",
+          "cp current.json backups/$(date +%Y%m%d_%H%M%S).json"
+        ]
+      }
+    },
+
+    "working_copy": {
+      "name": "Working Copy",
+      "platform": "ios",
+      "description": "Full-featured Git client for iOS",
+      "enabled": true,
+      "configuration": {
+        "repositories": [
+          {
+            "name": "blackroad-earth",
+            "url": "https://github.com/BlackRoad-OS/blackroad-earth.git",
+            "default_branch": "main",
+            "auto_fetch": true,
+            "fetch_interval_minutes": 15
+          },
+          {
+            "name": "blackroad-kanban-api",
+            "url": "https://github.com/BlackRoad-OS/blackroad-kanban-api.git",
+            "default_branch": "main",
+            "auto_fetch": true
+          }
+        ],
+        "settings": {
+          "theme": "dark",
+          "editor_font": "SF Mono",
+          "editor_font_size": 14,
+          "show_invisibles": true,
+          "line_numbers": true,
+          "syntax_highlighting": true
+        },
+        "integrations": {
+          "files_app": true,
+          "shortcuts": true,
+          "share_extension": true,
+          "url_schemes": true
+        }
+      },
+      "url_schemes": {
+        "clone": "working-copy://clone?remote={repo_url}",
+        "open_file": "working-copy://open?repo={repo_name}&path={file_path}",
+        "commit": "working-copy://commit?repo={repo_name}&message={message}",
+        "push": "working-copy://push?repo={repo_name}",
+        "pull": "working-copy://pull?repo={repo_name}"
+      },
+      "shortcuts": {
+        "quick_commit": {
+          "name": "Quick Commit",
+          "actions": ["stage_all", "commit_with_message", "push"]
+        },
+        "sync_kanban": {
+          "name": "Sync Kanban",
+          "actions": ["fetch", "pull", "run_script:sync-state.sh"]
+        }
+      }
+    },
+
+    "pyto": {
+      "name": "Pyto",
+      "platform": "ios",
+      "description": "Python IDE for iOS with full library support",
+      "enabled": true,
+      "configuration": {
+        "python_version": "3.11",
+        "packages": [
+          "requests",
+          "aiohttp",
+          "httpx",
+          "pydantic",
+          "python-dotenv",
+          "cryptography",
+          "PyYAML",
+          "rich",
+          "click"
+        ],
+        "scripts_directory": "/Documents/blackroad-scripts",
+        "settings": {
+          "theme": "dark",
+          "font": "SF Mono",
+          "font_size": 14,
+          "auto_complete": true,
+          "show_console": true
+        }
+      },
+      "scripts": {
+        "kanban_sync": {
+          "name": "kanban_sync.py",
+          "description": "Sync kanban state across services",
+          "path": "scripts/mobile/kanban_sync.py"
+        },
+        "hash_verify": {
+          "name": "hash_verify.py",
+          "description": "Verify SHA-256/infinity hashes",
+          "path": "scripts/mobile/hash_verify.py"
+        },
+        "integration_health": {
+          "name": "integration_health.py",
+          "description": "Check health of all integrations",
+          "path": "scripts/mobile/integration_health.py"
+        },
+        "quick_deploy": {
+          "name": "quick_deploy.py",
+          "description": "Trigger deployment from mobile",
+          "path": "scripts/mobile/quick_deploy.py"
+        }
+      },
+      "shortcuts_integration": {
+        "enabled": true,
+        "actions": [
+          { "name": "Run Sync", "script": "kanban_sync.py" },
+          { "name": "Check Health", "script": "integration_health.py" },
+          { "name": "Verify Hash", "script": "hash_verify.py" }
+        ]
+      }
+    }
+  },
+
+  "cross_app_workflows": {
+    "full_mobile_sync": {
+      "name": "Full Mobile Sync",
+      "description": "Complete sync workflow using all apps",
+      "steps": [
+        { "app": "working_copy", "action": "pull", "repo": "blackroad-earth" },
+        { "app": "pyto", "action": "run_script", "script": "kanban_sync.py" },
+        { "app": "shellfish", "action": "ssh_command", "host": "Pi Master", "command": "systemctl status blackroad-kanban" }
+      ]
+    },
+    "emergency_rollback": {
+      "name": "Emergency Rollback",
+      "description": "Quick rollback from mobile",
+      "steps": [
+        { "app": "shellfish", "action": "ssh_command", "host": "Pi Master", "command": "kubectl rollout undo deployment/blackroad-kanban -n blackroad" },
+        { "app": "working_copy", "action": "revert_last_commit", "repo": "blackroad-earth" },
+        { "app": "pyto", "action": "run_script", "script": "integration_health.py" }
+      ]
+    }
+  },
+
+  "ios_shortcuts": {
+    "enabled": true,
+    "shortcuts": [
+      {
+        "name": "BlackRoad Sync",
+        "actions": [
+          "working_copy://pull?repo=blackroad-earth",
+          "shortcuts://run-shortcut?name=Pyto%20Sync%20Script"
+        ]
+      },
+      {
+        "name": "BlackRoad Health Check",
+        "actions": [
+          "pyto://run?script=integration_health.py"
+        ]
+      }
+    ]
+  },
+
+  "files_app_integration": {
+    "enabled": true,
+    "providers": [
+      { "app": "working_copy", "location": "Working Copy" },
+      { "app": "shellfish", "location": "Shellfish" },
+      { "app": "ish", "location": "iSH" }
+    ],
+    "shared_directory": "/Documents/BlackRoad"
+  }
+}

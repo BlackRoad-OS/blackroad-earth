@@ -1,0 +1,94 @@
+{
+  "$schema": "../schemas/state.schema.json",
+  "version": "1.0.0",
+  "metadata": {
+    "created_at": "2026-01-27T00:00:00Z",
+    "updated_at": "2026-01-27T00:00:00Z",
+    "state_id": "state_001",
+    "integrity": {
+      "sha256": "pending_calculation",
+      "sha_infinity": "pending_calculation",
+      "chain_depth": 7
+    }
+  },
+  "boards": {
+    "main": {
+      "backlog": [],
+      "todo": [
+        {
+          "id": "card_001",
+          "title": "Set up kanban integrations",
+          "description": "Configure all service integrations for the kanban system",
+          "labels": ["integration", "infrastructure"],
+          "priority": 1,
+          "assignee": "claude-agent",
+          "created_at": "2026-01-27T00:00:00Z",
+          "due_date": null,
+          "linked_pr": null,
+          "linked_branch": "claude/setup-kanban-integration-6eHia"
+        }
+      ],
+      "in_progress": [],
+      "review": [],
+      "testing": [],
+      "done": []
+    },
+    "infrastructure": {
+      "planned": [],
+      "configuring": [],
+      "deploying": [],
+      "monitoring": [],
+      "stable": [
+        {
+          "id": "infra_001",
+          "title": "Cloudflare Pages Deployment",
+          "description": "Primary hosting and CDN",
+          "status": "active",
+          "health": "healthy"
+        }
+      ]
+    },
+    "integrations": {
+      "disconnected": [],
+      "configuring": [
+        { "id": "int_001", "service": "cloudflare", "status": "configuring" },
+        { "id": "int_002", "service": "salesforce", "status": "configuring" },
+        { "id": "int_003", "service": "vercel", "status": "configuring" },
+        { "id": "int_004", "service": "digitalocean", "status": "configuring" },
+        { "id": "int_005", "service": "claude", "status": "configuring" },
+        { "id": "int_006", "service": "termius", "status": "configuring" },
+        { "id": "int_007", "service": "raspberry_pi", "status": "configuring" },
+        { "id": "int_008", "service": "mobile_apps", "status": "configuring" }
+      ],
+      "testing": [],
+      "connected": []
+    }
+  },
+  "statistics": {
+    "total_cards": 10,
+    "cards_by_status": {
+      "backlog": 0,
+      "todo": 1,
+      "in_progress": 0,
+      "review": 0,
+      "testing": 0,
+      "done": 0,
+      "configuring": 8
+    },
+    "cards_by_priority": {
+      "critical": 1,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "velocity": {
+      "last_7_days": 0,
+      "last_30_days": 0
+    }
+  },
+  "sync_status": {
+    "github": { "synced": true, "last_sync": "2026-01-27T00:00:00Z" },
+    "cloudflare": { "synced": false, "last_sync": null },
+    "salesforce": { "synced": false, "last_sync": null }
+  }
+}

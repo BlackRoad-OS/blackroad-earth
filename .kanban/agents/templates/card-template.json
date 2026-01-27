@@ -1,0 +1,107 @@
+{
+  "$schema": "../../schemas/card.schema.json",
+  "template_version": "1.0.0",
+  "templates": {
+    "feature": {
+      "title_prefix": "feat: ",
+      "default_labels": ["feature"],
+      "default_priority": 3,
+      "checklist": [
+        { "item": "Requirements documented", "required": true },
+        { "item": "Design reviewed", "required": false },
+        { "item": "Implementation complete", "required": true },
+        { "item": "Tests written", "required": true },
+        { "item": "Documentation updated", "required": false },
+        { "item": "Code reviewed", "required": true },
+        { "item": "State hash verified", "required": true }
+      ],
+      "description_template": "## Feature Description\n[Describe the feature]\n\n## Acceptance Criteria\n- [ ] Criterion 1\n- [ ] Criterion 2\n\n## Technical Notes\n[Any technical considerations]\n\n## State Integrity\n- SHA-256: `pending`\n- SHA-Infinity: `pending`"
+    },
+    "bug": {
+      "title_prefix": "fix: ",
+      "default_labels": ["bug"],
+      "default_priority": 2,
+      "checklist": [
+        { "item": "Bug reproduced", "required": true },
+        { "item": "Root cause identified", "required": true },
+        { "item": "Fix implemented", "required": true },
+        { "item": "Regression test added", "required": true },
+        { "item": "Fix verified", "required": true },
+        { "item": "State hash verified", "required": true }
+      ],
+      "description_template": "## Bug Description\n[Describe the bug]\n\n## Steps to Reproduce\n1. Step 1\n2. Step 2\n\n## Expected Behavior\n[What should happen]\n\n## Actual Behavior\n[What actually happens]\n\n## Root Cause\n[Analysis of the root cause]\n\n## Fix\n[Description of the fix]"
+    },
+    "infrastructure": {
+      "title_prefix": "infra: ",
+      "default_labels": ["infrastructure"],
+      "default_priority": 2,
+      "checklist": [
+        { "item": "Change documented", "required": true },
+        { "item": "Rollback plan ready", "required": true },
+        { "item": "Staging tested", "required": true },
+        { "item": "Production deployed", "required": true },
+        { "item": "Monitoring verified", "required": true },
+        { "item": "State hash verified", "required": true }
+      ],
+      "description_template": "## Infrastructure Change\n[Describe the change]\n\n## Affected Services\n- Service 1\n- Service 2\n\n## Rollback Plan\n[How to rollback if needed]\n\n## Monitoring\n[What to monitor after change]"
+    },
+    "integration": {
+      "title_prefix": "int: ",
+      "default_labels": ["integration"],
+      "default_priority": 3,
+      "checklist": [
+        { "item": "Integration documented", "required": true },
+        { "item": "Credentials configured", "required": true },
+        { "item": "Endpoints tested", "required": true },
+        { "item": "Error handling added", "required": true },
+        { "item": "Health check added", "required": true },
+        { "item": "State sync verified", "required": true }
+      ],
+      "description_template": "## Integration\n[Service being integrated]\n\n## Endpoints\n- Endpoint 1: `url`\n- Endpoint 2: `url`\n\n## Authentication\n[Auth method - DO NOT include actual credentials]\n\n## Data Flow\n[How data flows between systems]"
+    },
+    "agent-task": {
+      "title_prefix": "agent: ",
+      "default_labels": ["agent-task"],
+      "default_priority": 3,
+      "checklist": [
+        { "item": "Task understood", "required": true },
+        { "item": "Dependencies checked", "required": true },
+        { "item": "Implementation complete", "required": true },
+        { "item": "Hash verification passed", "required": true },
+        { "item": "State updated", "required": true }
+      ],
+      "description_template": "## Agent Task\n[Task description]\n\n## Agent Assignment\n- Agent: `agent-name`\n- Model: `model-id`\n\n## Prerequisites\n- Prerequisite 1\n- Prerequisite 2\n\n## Expected Output\n[What the agent should produce]\n\n## Verification\n- [ ] Output verified\n- [ ] Hash verified"
+    },
+    "documentation": {
+      "title_prefix": "docs: ",
+      "default_labels": ["documentation"],
+      "default_priority": 4,
+      "checklist": [
+        { "item": "Content written", "required": true },
+        { "item": "Reviewed for accuracy", "required": true },
+        { "item": "Examples included", "required": false },
+        { "item": "Links verified", "required": true }
+      ],
+      "description_template": "## Documentation Update\n[What documentation is being updated]\n\n## Changes\n- Change 1\n- Change 2\n\n## Affected Files\n- file1.md\n- file2.md"
+    },
+    "security": {
+      "title_prefix": "sec: ",
+      "default_labels": ["security"],
+      "default_priority": 1,
+      "checklist": [
+        { "item": "Vulnerability identified", "required": true },
+        { "item": "Impact assessed", "required": true },
+        { "item": "Fix implemented", "required": true },
+        { "item": "Security review passed", "required": true },
+        { "item": "Penetration tested", "required": false },
+        { "item": "Deployed to production", "required": true }
+      ],
+      "description_template": "## Security Issue\n[DO NOT include sensitive details in public repos]\n\n## Severity\n[Critical/High/Medium/Low]\n\n## Impact\n[What could be affected]\n\n## Mitigation\n[How the issue is being fixed]\n\n## Timeline\n- Identified: [date]\n- Fix ETA: [date]"
+    }
+  },
+  "create_card": {
+    "required_fields": ["title", "description", "labels", "priority"],
+    "optional_fields": ["assignee", "due_date", "linked_pr", "dependencies"],
+    "auto_generated": ["id", "created_at", "status", "sha_hash"]
+  }
+}

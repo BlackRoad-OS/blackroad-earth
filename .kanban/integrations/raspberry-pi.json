@@ -1,0 +1,308 @@
+{
+  "$schema": "../schemas/integration.schema.json",
+  "service": "raspberry_pi",
+  "version": "1.0.0",
+  "enabled": true,
+  "description": "Raspberry Pi cluster integration for edge computing and local infrastructure",
+
+  "cluster": {
+    "name": "blackroad-pi-cluster",
+    "description": "On-premise Raspberry Pi Kubernetes cluster",
+    "nodes": [
+      {
+        "name": "pi-master",
+        "model": "Raspberry Pi 4 Model B",
+        "memory_gb": 8,
+        "storage_gb": 256,
+        "role": "control-plane",
+        "ip_env_var": "PI_MASTER_IP",
+        "hostname": "pi-master.local",
+        "os": "Ubuntu Server 22.04 LTS (64-bit)",
+        "services": [
+          "k3s-server",
+          "etcd",
+          "blackroad-api",
+          "blackroad-kanban",
+          "prometheus",
+          "grafana"
+        ]
+      },
+      {
+        "name": "pi-worker-1",
+        "model": "Raspberry Pi 4 Model B",
+        "memory_gb": 4,
+        "storage_gb": 128,
+        "role": "worker",
+        "ip_env_var": "PI_WORKER_1_IP",
+        "hostname": "pi-worker-1.local",
+        "os": "Ubuntu Server 22.04 LTS (64-bit)",
+        "services": ["k3s-agent", "blackroad-agent"]
+      },
+      {
+        "name": "pi-worker-2",
+        "model": "Raspberry Pi 4 Model B",
+        "memory_gb": 4,
+        "storage_gb": 128,
+        "role": "worker",
+        "ip_env_var": "PI_WORKER_2_IP",
+        "hostname": "pi-worker-2.local",
+        "os": "Ubuntu Server 22.04 LTS (64-bit)",
+        "services": ["k3s-agent", "blackroad-agent"]
+      },
+      {
+        "name": "pi-storage",
+        "model": "Raspberry Pi 4 Model B",
+        "memory_gb": 8,
+        "storage_gb": 2048,
+        "role": "storage",
+        "ip_env_var": "PI_STORAGE_IP",
+        "hostname": "pi-storage.local",
+        "os": "Ubuntu Server 22.04 LTS (64-bit)",
+        "services": ["nfs-server", "minio", "backup-agent"],
+        "external_storage": [
+          { "device": "/dev/sda1", "mount": "/mnt/storage", "type": "ext4", "size_gb": 2000 }
+        ]
+      }
+    ]
+  },
+
+  "kubernetes": {
+    "distribution": "k3s",
+    "version": "v1.29.0+k3s1",
+    "config": {
+      "cluster_cidr": "10.42.0.0/16",
+      "service_cidr": "10.43.0.0/16",
+      "cluster_dns": "10.43.0.10",
+      "flannel_backend": "vxlan"
+    },
+    "namespaces": [
+      {
+        "name": "blackroad",
+        "description": "Main BlackRoad application namespace",
+        "workloads": ["kanban-api", "kanban-ui", "sync-worker", "agent-controller"]
+      },
+      {
+        "name": "monitoring",
+        "description": "Monitoring stack",
+        "workloads": ["prometheus", "grafana", "alertmanager"]
+      },
+      {
+        "name": "storage",
+        "description": "Storage services",
+        "workloads": ["minio", "nfs-provisioner"]
+      }
+    ],
+    "deployments": [
+      {
+        "name": "kanban-api",
+        "namespace": "blackroad",
+        "replicas": 2,
+        "image": "blackroad/kanban-api:latest",
+        "ports": [{ "container": 3000, "service": 80 }],
+        "resources": {
+          "requests": { "cpu": "100m", "memory": "256Mi" },
+          "limits": { "cpu": "500m", "memory": "512Mi" }
+        },
+        "env_from_secret": "blackroad-secrets"
+      },
+      {
+        "name": "sync-worker",
+        "namespace": "blackroad",
+        "replicas": 1,
+        "image": "blackroad/sync-worker:latest",
+        "resources": {
+          "requests": { "cpu": "50m", "memory": "128Mi" },
+          "limits": { "cpu": "200m", "memory": "256Mi" }
+        }
+      },
+      {
+        "name": "agent-controller",
+        "namespace": "blackroad",
+        "replicas": 1,
+        "image": "blackroad/agent-controller:latest",
+        "resources": {
+          "requests": { "cpu": "100m", "memory": "256Mi" },
+          "limits": { "cpu": "500m", "memory": "512Mi" }
+        }
+      }
+    ],
+    "services": [
+      {
+        "name": "kanban-api",
+        "namespace": "blackroad",
+        "type": "ClusterIP",
+        "port": 80,
+        "target_port": 3000
+      },
+      {
+        "name": "kanban-api-external",
+        "namespace": "blackroad",
+        "type": "LoadBalancer",
+        "port": 80,
+        "target_port": 3000,
+        "external_ip_env_var": "PI_EXTERNAL_IP"
+      }
+    ],
+    "ingress": {
+      "controller": "traefik",
+      "rules": [
+        {
+          "host": "kanban.pi.blackroad.io",
+          "service": "kanban-api",
+          "port": 80,
+          "tls": true
+        },
+        {
+          "host": "grafana.pi.blackroad.io",
+          "service": "grafana",
+          "namespace": "monitoring",
+          "port": 80,
+          "tls": true
+        }
+      ]
+    }
+  },
+
+  "storage": {
+    "nfs": {
+      "enabled": true,
+      "server": "pi-storage.local",
+      "exports": [
+        { "path": "/mnt/storage/blackroad", "options": "rw,sync,no_subtree_check" },
+        { "path": "/mnt/storage/backups", "options": "rw,sync,no_subtree_check" }
+      ]
+    },
+    "minio": {
+      "enabled": true,
+      "endpoint": "http://pi-storage.local:9000",
+      "access_key_env_var": "MINIO_ACCESS_KEY",
+      "secret_key_env_var": "MINIO_SECRET_KEY",
+      "buckets": [
+        { "name": "kanban-state", "versioning": true },
+        { "name": "artifacts", "versioning": false },
+        { "name": "backups", "versioning": true, "lifecycle_days": 90 }
+      ]
+    },
+    "persistent_volumes": [
+      {
+        "name": "kanban-data",
+        "capacity": "10Gi",
+        "access_modes": ["ReadWriteMany"],
+        "storage_class": "nfs"
+      },
+      {
+        "name": "prometheus-data",
+        "capacity": "50Gi",
+        "access_modes": ["ReadWriteOnce"],
+        "storage_class": "local-path"
+      }
+    ]
+  },
+
+  "networking": {
+    "internal": {
+      "network": "192.168.1.0/24",
+      "gateway": "192.168.1.1",
+      "dns": ["192.168.1.1", "8.8.8.8"]
+    },
+    "cloudflare_tunnel": {
+      "enabled": true,
+      "tunnel_id_env_var": "CF_TUNNEL_ID",
+      "credentials_env_var": "CF_TUNNEL_CREDENTIALS",
+      "ingress": [
+        { "hostname": "pi.blackroad.io", "service": "http://localhost:80" },
+        { "hostname": "api.pi.blackroad.io", "service": "http://kanban-api.blackroad.svc:80" }
+      ]
+    },
+    "tailscale": {
+      "enabled": true,
+      "auth_key_env_var": "TAILSCALE_AUTH_KEY",
+      "hostname_suffix": ".blackroad.ts.net"
+    }
+  },
+
+  "monitoring": {
+    "prometheus": {
+      "enabled": true,
+      "scrape_interval": "15s",
+      "retention_days": 30,
+      "targets": [
+        { "job": "kubernetes-nodes", "targets": ["pi-master:9100", "pi-worker-1:9100", "pi-worker-2:9100", "pi-storage:9100"] },
+        { "job": "kubernetes-pods", "kubernetes_sd": true },
+        { "job": "blackroad-api", "targets": ["kanban-api.blackroad.svc:3000/metrics"] }
+      ]
+    },
+    "grafana": {
+      "enabled": true,
+      "dashboards": [
+        "kubernetes-cluster",
+        "node-exporter",
+        "blackroad-kanban",
+        "blackroad-agents"
+      ],
+      "datasources": ["prometheus", "loki"]
+    },
+    "alertmanager": {
+      "enabled": true,
+      "receivers": [
+        { "name": "email", "email_env_var": "ALERT_EMAIL" },
+        { "name": "slack", "webhook_env_var": "SLACK_WEBHOOK" }
+      ],
+      "alerts": [
+        { "name": "NodeDown", "expr": "up == 0", "for": "5m", "severity": "critical" },
+        { "name": "HighCPU", "expr": "node_cpu_seconds_total > 80", "for": "10m", "severity": "warning" },
+        { "name": "HighMemory", "expr": "node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1", "for": "5m", "severity": "warning" },
+        { "name": "DiskFull", "expr": "node_filesystem_avail_bytes / node_filesystem_size_bytes < 0.1", "for": "5m", "severity": "critical" }
+      ]
+    }
+  },
+
+  "backup": {
+    "enabled": true,
+    "schedule": "0 2 * * *",
+    "retention_days": 30,
+    "targets": [
+      { "name": "etcd", "type": "etcd-snapshot", "destination": "/mnt/storage/backups/etcd" },
+      { "name": "kanban-state", "type": "rsync", "source": "/opt/blackroad/.kanban", "destination": "/mnt/storage/backups/kanban" },
+      { "name": "minio-sync", "type": "minio-mirror", "destination": "s3://blackroad-backups" }
+    ],
+    "offsite": {
+      "enabled": true,
+      "provider": "digitalocean_spaces",
+      "bucket": "blackroad-pi-backups",
+      "region": "nyc3"
+    }
+  },
+
+  "security": {
+    "ssh": {
+      "port": 22,
+      "permit_root_login": false,
+      "password_authentication": false,
+      "authorized_keys_path": "/home/blackroad/.ssh/authorized_keys"
+    },
+    "firewall": {
+      "enabled": true,
+      "rules": [
+        { "port": 22, "protocol": "tcp", "source": "192.168.1.0/24" },
+        { "port": 80, "protocol": "tcp", "source": "0.0.0.0/0" },
+        { "port": 443, "protocol": "tcp", "source": "0.0.0.0/0" },
+        { "port": 6443, "protocol": "tcp", "source": "192.168.1.0/24" },
+        { "port": "10250:10252", "protocol": "tcp", "source": "192.168.1.0/24" }
+      ]
+    },
+    "fail2ban": {
+      "enabled": true,
+      "max_retry": 5,
+      "ban_time": 3600
+    }
+  },
+
+  "scripts": {
+    "setup_node": "scripts/pi/setup-node.sh",
+    "join_cluster": "scripts/pi/join-cluster.sh",
+    "deploy_stack": "scripts/pi/deploy-stack.sh",
+    "backup": "scripts/pi/backup.sh",
+    "health_check": "scripts/pi/health-check.sh"
+  }
+}

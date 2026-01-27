@@ -1,0 +1,144 @@
+{
+  "$schema": "../schemas/integration.schema.json",
+  "service": "salesforce",
+  "version": "1.0.0",
+  "enabled": true,
+  "description": "Salesforce CRM integration for project pipeline and customer relationship management",
+
+  "authentication": {
+    "method": "oauth2",
+    "client_id_env_var": "SALESFORCE_CLIENT_ID",
+    "client_secret_env_var": "SALESFORCE_CLIENT_SECRET",
+    "username_env_var": "SALESFORCE_USERNAME",
+    "password_env_var": "SALESFORCE_PASSWORD",
+    "security_token_env_var": "SALESFORCE_SECURITY_TOKEN",
+    "instance_url_env_var": "SALESFORCE_INSTANCE_URL",
+    "api_version": "v59.0"
+  },
+
+  "objects": {
+    "custom_objects": [
+      {
+        "name": "BlackRoad_Project__c",
+        "description": "Custom object for tracking BlackRoad projects",
+        "fields": [
+          { "name": "GitHub_Repo__c", "type": "URL" },
+          { "name": "Kanban_State_Hash__c", "type": "Text", "length": 64 },
+          { "name": "Last_Sync__c", "type": "DateTime" },
+          { "name": "Active_Cards__c", "type": "Number" },
+          { "name": "Velocity__c", "type": "Number" },
+          { "name": "Health_Status__c", "type": "Picklist", "values": ["Healthy", "Warning", "Critical"] }
+        ]
+      },
+      {
+        "name": "Kanban_Card__c",
+        "description": "Individual kanban cards synced from GitHub",
+        "fields": [
+          { "name": "Card_ID__c", "type": "Text", "length": 50 },
+          { "name": "Title__c", "type": "Text", "length": 255 },
+          { "name": "Description__c", "type": "LongTextArea" },
+          { "name": "Status__c", "type": "Picklist" },
+          { "name": "Priority__c", "type": "Picklist" },
+          { "name": "Assignee__c", "type": "Text", "length": 100 },
+          { "name": "Linked_PR__c", "type": "URL" },
+          { "name": "SHA_Hash__c", "type": "Text", "length": 64 },
+          { "name": "Project__c", "type": "Lookup", "related_to": "BlackRoad_Project__c" }
+        ]
+      },
+      {
+        "name": "Integration_Log__c",
+        "description": "Audit log for all integration activities",
+        "fields": [
+          { "name": "Action__c", "type": "Text" },
+          { "name": "Source__c", "type": "Text" },
+          { "name": "Target__c", "type": "Text" },
+          { "name": "Status__c", "type": "Picklist" },
+          { "name": "Error_Message__c", "type": "LongTextArea" },
+          { "name": "Payload_Hash__c", "type": "Text", "length": 64 }
+        ]
+      }
+    ],
+
+    "standard_objects": [
+      {
+        "name": "Account",
+        "usage": "Track client accounts for custom projects"
+      },
+      {
+        "name": "Opportunity",
+        "usage": "Track project opportunities and pipeline"
+      },
+      {
+        "name": "Task",
+        "usage": "Sync with kanban tasks"
+      },
+      {
+        "name": "Case",
+        "usage": "Track issues and support requests"
+      }
+    ]
+  },
+
+  "flows": {
+    "automated_flows": [
+      {
+        "name": "GitHub_PR_to_Opportunity",
+        "description": "Create opportunity when PR is merged",
+        "trigger": "github_pr_merged",
+        "actions": ["create_opportunity", "update_project", "notify_team"]
+      },
+      {
+        "name": "Kanban_Card_Sync",
+        "description": "Sync kanban cards bidirectionally",
+        "trigger": "card_status_change",
+        "actions": ["update_salesforce_card", "verify_hash", "log_activity"]
+      },
+      {
+        "name": "Health_Check_Alert",
+        "description": "Alert when project health degrades",
+        "trigger": "health_status_change",
+        "actions": ["create_case", "notify_assignee", "escalate_if_critical"]
+      }
+    ]
+  },
+
+  "endpoints": {
+    "login": "https://login.salesforce.com/services/oauth2/token",
+    "rest_api": "{instance_url}/services/data/{api_version}",
+    "sobjects": "{instance_url}/services/data/{api_version}/sobjects",
+    "query": "{instance_url}/services/data/{api_version}/query",
+    "composite": "{instance_url}/services/data/{api_version}/composite"
+  },
+
+  "sync_mapping": {
+    "kanban_to_salesforce": {
+      "card.id": "Kanban_Card__c.Card_ID__c",
+      "card.title": "Kanban_Card__c.Title__c",
+      "card.description": "Kanban_Card__c.Description__c",
+      "card.status": "Kanban_Card__c.Status__c",
+      "card.priority": "Kanban_Card__c.Priority__c",
+      "card.assignee": "Kanban_Card__c.Assignee__c",
+      "card.linked_pr": "Kanban_Card__c.Linked_PR__c"
+    }
+  },
+
+  "state_management": {
+    "role": "secondary",
+    "sync_direction": "bidirectional",
+    "conflict_resolution": "salesforce_wins_for_crm_fields",
+    "integrity_verification": true
+  },
+
+  "reports_dashboards": {
+    "dashboards": [
+      {
+        "name": "BlackRoad Project Health",
+        "components": ["velocity_chart", "status_distribution", "integration_health"]
+      },
+      {
+        "name": "Agent Performance",
+        "components": ["tasks_completed", "pr_success_rate", "response_time"]
+      }
+    ]
+  }
+}

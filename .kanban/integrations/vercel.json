@@ -1,0 +1,158 @@
+{
+  "$schema": "../schemas/integration.schema.json",
+  "service": "vercel",
+  "version": "1.0.0",
+  "enabled": true,
+  "description": "Vercel integration for serverless functions, edge deployment, and preview environments",
+
+  "authentication": {
+    "method": "bearer_token",
+    "token_env_var": "VERCEL_TOKEN",
+    "team_id_env_var": "VERCEL_TEAM_ID",
+    "org_id_env_var": "VERCEL_ORG_ID"
+  },
+
+  "projects": {
+    "primary": {
+      "name": "blackroad-earth-api",
+      "framework": "other",
+      "root_directory": "./",
+      "build_command": null,
+      "output_directory": ".",
+      "install_command": null,
+      "dev_command": null
+    },
+    "serverless_functions": {
+      "name": "blackroad-functions",
+      "framework": "other",
+      "functions_directory": "./api",
+      "functions": [
+        {
+          "name": "kanban-sync",
+          "path": "api/kanban/sync.js",
+          "runtime": "nodejs20.x",
+          "memory": 1024,
+          "max_duration": 60
+        },
+        {
+          "name": "webhook-receiver",
+          "path": "api/webhooks/receiver.js",
+          "runtime": "nodejs20.x",
+          "memory": 512,
+          "max_duration": 30
+        },
+        {
+          "name": "hash-verify",
+          "path": "api/hash/verify.js",
+          "runtime": "nodejs20.x",
+          "memory": 256,
+          "max_duration": 10
+        },
+        {
+          "name": "agent-dispatch",
+          "path": "api/agents/dispatch.js",
+          "runtime": "nodejs20.x",
+          "memory": 1024,
+          "max_duration": 120
+        }
+      ]
+    }
+  },
+
+  "edge_config": {
+    "enabled": true,
+    "stores": [
+      {
+        "name": "kanban-edge-config",
+        "description": "Edge configuration for kanban state",
+        "items": [
+          { "key": "feature_flags", "description": "Feature toggles" },
+          { "key": "rate_limits", "description": "API rate limiting config" },
+          { "key": "routing_rules", "description": "Request routing rules" }
+        ]
+      }
+    ]
+  },
+
+  "kv_storage": {
+    "enabled": true,
+    "stores": [
+      {
+        "name": "kanban-kv",
+        "description": "Key-value store for kanban state cache"
+      },
+      {
+        "name": "session-kv",
+        "description": "Session storage for agent interactions"
+      }
+    ]
+  },
+
+  "blob_storage": {
+    "enabled": true,
+    "stores": [
+      {
+        "name": "artifacts",
+        "description": "Build artifacts and snapshots"
+      }
+    ]
+  },
+
+  "postgres": {
+    "enabled": true,
+    "databases": [
+      {
+        "name": "kanban-db",
+        "description": "Primary database for kanban data",
+        "region": "iad1"
+      }
+    ]
+  },
+
+  "deployment": {
+    "production_branch": "main",
+    "preview_branches": ["develop", "claude/*", "feature/*"],
+    "auto_deploy": true,
+    "git_integration": {
+      "provider": "github",
+      "repo": "BlackRoad-OS/blackroad-earth"
+    },
+    "environment_variables": [
+      { "key": "KANBAN_ENV", "value": "production", "target": ["production"] },
+      { "key": "KANBAN_ENV", "value": "preview", "target": ["preview"] },
+      { "key": "DEBUG", "value": "false", "target": ["production"] },
+      { "key": "DEBUG", "value": "true", "target": ["preview", "development"] }
+    ]
+  },
+
+  "domains": {
+    "production": ["blackroad.io", "www.blackroad.io"],
+    "api": ["api.blackroad.io"],
+    "preview": "*.blackroad-earth.vercel.app"
+  },
+
+  "endpoints": {
+    "api_base": "https://api.vercel.com",
+    "deployments": "https://api.vercel.com/v13/deployments",
+    "projects": "https://api.vercel.com/v9/projects",
+    "domains": "https://api.vercel.com/v9/projects/{projectId}/domains",
+    "env_vars": "https://api.vercel.com/v10/projects/{projectId}/env"
+  },
+
+  "webhooks": {
+    "deployment_created": true,
+    "deployment_ready": true,
+    "deployment_error": true,
+    "webhook_url": "https://api.blackroad.io/webhooks/vercel"
+  },
+
+  "monitoring": {
+    "analytics": true,
+    "speed_insights": true,
+    "web_vitals": true,
+    "logs": {
+      "enabled": true,
+      "retention_days": 7
+    }
+  }
+}

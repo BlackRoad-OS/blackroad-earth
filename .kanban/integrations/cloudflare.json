@@ -1,0 +1,132 @@
+{
+  "$schema": "../schemas/integration.schema.json",
+  "service": "cloudflare",
+  "version": "1.0.0",
+  "enabled": true,
+  "description": "Cloudflare integration for CDN, Workers, KV, and state management",
+
+  "authentication": {
+    "method": "api_token",
+    "token_env_var": "CLOUDFLARE_API_TOKEN",
+    "account_id_env_var": "CLOUDFLARE_ACCOUNT_ID",
+    "zone_id_env_var": "CLOUDFLARE_ZONE_ID"
+  },
+
+  "services": {
+    "pages": {
+      "enabled": true,
+      "project_name": "blackroad-earth",
+      "production_branch": "main",
+      "preview_branches": ["develop", "claude/*"],
+      "build_command": null,
+      "build_output_directory": ".",
+      "auto_deploy": true
+    },
+
+    "workers": {
+      "enabled": true,
+      "workers": [
+        {
+          "name": "kanban-state-worker",
+          "script_path": "workers/kanban-state.js",
+          "routes": ["api.blackroad.io/kanban/*"],
+          "kv_bindings": ["KANBAN_STATE", "KANBAN_HISTORY"]
+        },
+        {
+          "name": "webhook-handler",
+          "script_path": "workers/webhook-handler.js",
+          "routes": ["api.blackroad.io/webhooks/*"],
+          "secrets": ["GITHUB_WEBHOOK_SECRET", "SALESFORCE_WEBHOOK_SECRET"]
+        },
+        {
+          "name": "pi-cluster-proxy",
+          "script_path": "workers/pi-cluster-proxy.js",
+          "routes": ["api.blackroad.io/pi/*"],
+          "environment": {
+            "PI_CLUSTER_ENDPOINT": "https://pi.blackroad.io"
+          }
+        }
+      ]
+    },
+
+    "kv": {
+      "enabled": true,
+      "namespaces": [
+        {
+          "name": "KANBAN_STATE",
+          "description": "Current kanban board state",
+          "preview_id_env_var": "KANBAN_STATE_PREVIEW_ID",
+          "production_id_env_var": "KANBAN_STATE_PRODUCTION_ID"
+        },
+        {
+          "name": "KANBAN_HISTORY",
+          "description": "State change history with SHA-infinity hashes",
+          "preview_id_env_var": "KANBAN_HISTORY_PREVIEW_ID",
+          "production_id_env_var": "KANBAN_HISTORY_PRODUCTION_ID"
+        },
+        {
+          "name": "INTEGRATION_CACHE",
+          "description": "Cached responses from external integrations",
+          "ttl_seconds": 300
+        },
+        {
+          "name": "AGENT_SESSIONS",
+          "description": "Active AI agent session data",
+          "ttl_seconds": 3600
+        }
+      ]
+    },
+
+    "r2": {
+      "enabled": true,
+      "buckets": [
+        {
+          "name": "blackroad-artifacts",
+          "description": "Build artifacts and deployment packages"
+        },
+        {
+          "name": "blackroad-backups",
+          "description": "State backups and checkpoints"
+        }
+      ]
+    },
+
+    "d1": {
+      "enabled": true,
+      "databases": [
+        {
+          "name": "kanban_db",
+          "description": "Relational data for kanban cards and history"
+        }
+      ]
+    }
+  },
+
+  "endpoints": {
+    "api_base": "https://api.cloudflare.com/client/v4",
+    "pages_api": "https://api.cloudflare.com/client/v4/accounts/{account_id}/pages/projects",
+    "workers_api": "https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/scripts",
+    "kv_api": "https://api.cloudflare.com/client/v4/accounts/{account_id}/storage/kv/namespaces"
+  },
+
+  "webhooks": {
+    "incoming": {
+      "github_push": "https://api.blackroad.io/webhooks/github/push",
+      "github_pr": "https://api.blackroad.io/webhooks/github/pr",
+      "salesforce_update": "https://api.blackroad.io/webhooks/salesforce/update"
+    },
+    "outgoing": {
+      "state_change": true,
+      "deployment_complete": true,
+      "error_alert": true
+    }
+  },
+
+  "state_sync": {
+    "enabled": true,
+    "sync_interval_seconds": 60,
+    "conflict_resolution": "latest_wins",
+    "integrity_check": "sha_infinity",
+    "backup_on_sync": true
+  }
+}
